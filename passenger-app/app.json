@@ -4,12 +4,10 @@
     "slug": "passenger-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1565C0"
     },
     "platforms": [
       "web",
@@ -17,8 +15,7 @@
       "android"
     ],
     "web": {
-      "bundler": "metro",
-      "favicon": "./assets/favicon.png"
+      "bundler": "metro"
     },
     "extra": {
       "apiUrl": "http://localhost:5000/api",
