@@ -1,205 +1,447 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
-  TouchableOpacity,
-} from 'react-native';
-import {
-  Searchbar,
-  Card,
-  Title,
-  Paragraph,
-  Chip,
-  ActivityIndicator,
-  Text,
-} from 'react-native-paper';
-import { useBus } from '../context/BusContext';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Button, Text, Card, IconButton, Chip } from 'react-native-paper';
+import { useAuth } from '../context/AuthContext';
+import { colors } from '../utils/theme';
+import { loadMultipleCSV } from '../utils/csvParser';
 
-export default function HomeScreen({ navigation }) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
-  const { buses, stops, fetchBuses, fetchStops, loading } = useBus();
+const HomeScreen = ({ navigation }) => {
+  const { user, preferWomenBuses } = useAuth();
+  const [fromStop, setFromStop] = useState(null);
+  const [toStop, setToStop] = useState(null);
+  const [routes, setRoutes] = useState([]);
+  
+  // State for data loaded from public folder
+  const [routesData, setRoutesData] = useState([]);
+  const [busStopSequenceData, setBusStopSequenceData] = useState([]);
+  const [busesData, setBusesData] = useState([]);
+  const [liveBusLocations, setLiveBusLocations] = useState([]);
 
+  // Load data from public folder on component mount
   useEffect(() => {
-    loadData();
+    loadAllData();
   }, []);
 
-  const loadData = async () => {
-    await Promise.all([fetchBuses(), fetchStops()]);
-  };
+  const loadAllData = useCallback(async () => {
+    try {
+      const data = await loadMultipleCSV([
+        'bus_stops.csv',
+        'routes.csv',
+        'bus_stop_sequence.csv',
+        'buses.csv',
+        'live_bus_location.csv'
+      ]);
+      
+      setRoutesData(data.routes || []);
+      setBusStopSequenceData(data.bus_stop_sequence || []);
+      setBusesData(data.buses || []);
+      
+      // Merge bus data with location data
+      const locations = data.live_bus_location || [];
+      const buses = data.buses || [];
+      const busesWithLocation = locations.map(location => {
+        const bus = buses.find(b => b.bus_id === location.bus_id);
+        return {
+          ...bus,
+          ...location,
+        };
+      });
+      setLiveBusLocations(busesWithLocation);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
+  }, []);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
+  const handleSearch = useCallback(() => {
+    if (!fromStop || !toStop) {
+      alert('Please select both From and To stops');
+      return;
+    }
 
-  const filteredStops = stops.filter((stop) =>
-    stop.stop_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    if (fromStop.stop_id === toStop.stop_id) {
+      alert('From and To stops cannot be the same');
+      return;
+    }
 
-  const handleStopPress = (stop) => {
-    navigation.navigate('StopArrivals', { stop });
-  };
+    // Find routes that connect these stops
+    const foundRoutes = findConnectingRoutes(fromStop.stop_id, toStop.stop_id);
+    setRoutes(foundRoutes);
+  }, [fromStop, toStop, findConnectingRoutes]);
+
+  const findConnectingRoutes = useCallback((fromStopId, toStopId) => {
+    const results = [];
+
+    // Get all unique route IDs
+    const allRouteIds = [...new Set(busStopSequenceData.map(seq => seq.route_id))];
+
+    allRouteIds.forEach(routeId => {
+      const routeStops = busStopSequenceData
+        .filter(seq => seq.route_id === routeId)
+        .sort((a, b) => a.stop_order - b.stop_order);
+
+      const fromIndex = routeStops.findIndex(s => s.stop_id === fromStopId);
+      const toIndex = routeStops.findIndex(s => s.stop_id === toStopId);
+
+      if (fromIndex !== -1 && toIndex !== -1 && fromIndex < toIndex) {
+        const route = routesData.find(r => r.route_id === routeId);
+        const busesOnRoute = busesData.filter(b => b.route_id === routeId && b.status === 'Running');
+
+        // Sort buses - women buses first if preference is enabled
+        let sortedBuses = busesOnRoute;
+        if (preferWomenBuses) {
+          sortedBuses = [
+            ...busesOnRoute.filter(b => b.women_bus === 'Yes'),
+            ...busesOnRoute.filter(b => b.women_bus === 'No'),
+          ];
+        }
+
+        results.push({
+          route,
+          buses: sortedBuses,
+          stopCount: toIndex - fromIndex + 1,
+        });
+      }
+    });
+
+    return results;
+  }, [busStopSequenceData, routesData, busesData, preferWomenBuses]);
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Title style={styles.headerTitle}>🚌 Tamil Nadu State Transport</Title>
-        <Paragraph style={styles.headerSubtitle}>
-          Official TNSTC Real-time Bus Tracking
-        </Paragraph>
+        <View style={styles.headerContent}>
+          <View style={styles.headerText}>
+            <Text variant="headlineMedium" style={styles.greeting}>
+              Hello, {user?.name || 'Passenger'}! 👋
+            </Text>
+            <Text variant="bodyMedium" style={styles.subtitle}>
+              Where would you like to go today?
+            </Text>
+          </View>
+          <IconButton
+            icon="account-circle"
+            iconColor="white"
+            size={32}
+            onPress={() => navigation.navigate('Settings')}
+            style={styles.accountButton}
+          />
+        </View>
       </View>
 
-      <Searchbar
-        placeholder="Search bus stops..."
-        onChangeText={setSearchQuery}
-        value={searchQuery}
-        style={styles.searchBar}
-      />
-
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+      <ScrollView 
+        style={styles.mainScroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+        scrollEnabled={true}
+        nestedScrollEnabled={true}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* Quick Stats */}
-        <View style={styles.statsContainer}>
-          <Card style={styles.statCard}>
-            <Card.Content>
-              <Text style={styles.statNumber}>{buses.length}</Text>
-              <Text style={styles.statLabel}>Active Buses</Text>
-            </Card.Content>
-          </Card>
-          <Card style={styles.statCard}>
-            <Card.Content>
-              <Text style={styles.statNumber}>{stops.length}</Text>
-              <Text style={styles.statLabel}>Bus Stops</Text>
-            </Card.Content>
-          </Card>
-        </View>
+        {/* Search Card */}
+        <Card style={styles.searchCard}>
+          <Card.Content>
+            <View style={styles.searchContainer}>
+              <Text variant="titleMedium" style={styles.searchTitle}>
+                Plan Your Journey
+              </Text>
 
-        {/* Nearby Stops */}
-        <Title style={styles.sectionTitle}>Nearby Stops</Title>
+              <View style={styles.inputContainer}>
+                <Text variant="labelMedium" style={styles.label}>From</Text>
+                <Button
+                  mode="outlined"
+                  onPress={() => navigation.navigate('StopSelection', {
+                    onSelect: (stop) => setFromStop(stop),
+                    title: 'Select Starting Stop',
+                  })}
+                  style={styles.selectButton}
+                  contentStyle={styles.selectButtonContent}
+                  icon="map-marker"
+                >
+                  {fromStop ? fromStop.stop_name : 'Select Stop'}
+                </Button>
+              </View>
 
-        {loading && !refreshing ? (
-          <ActivityIndicator size="large" style={styles.loader} />
-        ) : (
-          filteredStops.map((stop) => (
-            <TouchableOpacity
-              key={stop.stop_id}
-              onPress={() => handleStopPress(stop)}
-            >
-              <Card style={styles.stopCard}>
+              <View style={styles.inputContainer}>
+                <Text variant="labelMedium" style={styles.label}>To</Text>
+                <Button
+                  mode="outlined"
+                  onPress={() => navigation.navigate('StopSelection', {
+                    onSelect: (stop) => setToStop(stop),
+                    title: 'Select Destination Stop',
+                  })}
+                  style={styles.selectButton}
+                  contentStyle={styles.selectButtonContent}
+                  icon="map-marker-check"
+                >
+                  {toStop ? toStop.stop_name : 'Select Stop'}
+                </Button>
+              </View>
+
+              <Button
+                mode="contained"
+                onPress={handleSearch}
+                style={styles.searchButton}
+                contentStyle={styles.searchButtonContent}
+                icon="magnify"
+              >
+                Search Buses
+              </Button>
+            </View>
+          </Card.Content>
+        </Card>
+
+        {/* Results */}
+        {routes.length > 0 && (
+          <View style={styles.resultsContainer}>
+            <Text variant="titleLarge" style={styles.resultsTitle}>
+              Available Routes ({routes.length})
+            </Text>
+            
+            {routes.map((routeInfo, index) => (
+              <Card key={index} style={styles.routeCard}>
                 <Card.Content>
-                  <View style={styles.stopHeader}>
-                    <Ionicons name="location" size={24} color="#2196F3" />
-                    <View style={styles.stopInfo}>
-                      <Title style={styles.stopName}>{stop.stop_name}</Title>
-                      <Paragraph style={styles.stopCity}>{stop.city}</Paragraph>
-                    </View>
-                    <Ionicons name="chevron-forward" size={24} color="#999" />
+                  <Text variant="titleMedium" style={styles.routeName}>
+                    {routeInfo.route.start_stop} → {routeInfo.route.end_stop}
+                  </Text>
+                  <Text variant="bodySmall" style={styles.routeDetails}>
+                    {routeInfo.stopCount} stops • {routeInfo.route.distance_km} km
+                  </Text>
+                  <Text variant="bodyMedium" style={styles.busCount}>
+                    {routeInfo.buses.length} buses available
+                  </Text>
+                  
+                  <View style={styles.busPreview}>
+                    {routeInfo.buses.slice(0, 3).map(bus => (
+                      <View key={bus.bus_id} style={styles.busTag}>
+                        <Text variant="bodySmall">
+                          {bus.bus_id} {bus.women_bus === 'Yes' ? '💗' : ''}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
                 </Card.Content>
               </Card>
-            </TouchableOpacity>
-          ))
-        )}
-
-        {!loading && filteredStops.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No stops found</Text>
+            ))}
           </View>
         )}
+        
+        {routes.length === 0 && fromStop && toStop && (
+          <Card style={styles.noResultsCard}>
+            <Card.Content>
+              <Text variant="bodyLarge" style={styles.noResults}>
+                No direct routes found
+              </Text>
+              <Text variant="bodySmall" style={styles.noResultsHint}>
+                Try selecting different stops or check individual stops for next buses
+              </Text>
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* Live Map Button Card - Moved to Bottom */}
+        <Card style={styles.liveMapCard}>
+          <Card.Content>
+            <View style={styles.liveMapHeader}>
+              <View style={styles.liveMapTitleContainer}>
+                <Text variant="titleLarge" style={styles.liveMapTitle}>
+                  🗺️ Live Bus Tracking
+                </Text>
+                <View style={styles.liveBadge}>
+                  <View style={styles.liveIndicator} />
+                  <Text variant="bodySmall" style={styles.liveText}>LIVE</Text>
+                </View>
+              </View>
+              <Chip icon="bus" style={styles.busCountChip}>
+                {liveBusLocations.length} buses
+              </Chip>
+            </View>
+            
+            <Text variant="bodyMedium" style={styles.mapDescription}>
+              Track all buses in real-time on an interactive map
+            </Text>
+            
+            <Button
+              mode="contained"
+              icon="map"
+              style={styles.openMapButton}
+              contentStyle={styles.openMapButtonContent}
+              onPress={() => navigation.navigate('LiveMap')}
+            >
+              Open Live Map
+            </Button>
+          </Card.Content>
+        </Card>
       </ScrollView>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   header: {
     padding: 20,
-    paddingTop: 50,
-    backgroundColor: '#1565C0',
+    backgroundColor: colors.primary,
+    paddingTop: 40,
+    flexShrink: 0,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  headerSubtitle: {
-    color: '#BBDEFB',
-    opacity: 0.95,
-    fontSize: 13,
-  },
-  searchBar: {
-    margin: 15,
-    elevation: 4,
-  },
-  content: {
-    flex: 1,
-    padding: 15,
-  },
-  statsContainer: {
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    alignItems: 'flex-start',
   },
-  statCard: {
+  headerText: {
     flex: 1,
-    marginHorizontal: 5,
   },
-  statNumber: {
-    fontSize: 32,
+  accountButton: {
+    margin: 0,
+  },
+  greeting: {
+    color: 'white',
     fontWeight: 'bold',
-    color: '#1565C0',
-    textAlign: 'center',
   },
-  statLabel: {
-    textAlign: 'center',
-    color: '#666',
+  subtitle: {
+    color: 'white',
+    opacity: 0.9,
+    marginTop: 4,
   },
-  sectionTitle: {
-    fontSize: 20,
+  searchCard: {
+    margin: 16,
+    elevation: 4,
+  },
+  searchContainer: {
+    gap: 16,
+  },
+  searchTitle: {
     fontWeight: 'bold',
-    marginBottom: 10,
   },
-  stopCard: {
-    marginBottom: 10,
+  inputContainer: {
+    gap: 8,
   },
-  stopHeader: {
+  label: {
+    color: colors.textSecondary,
+  },
+  selectButton: {
+    justifyContent: 'flex-start',
+  },
+  selectButtonContent: {
+    justifyContent: 'flex-start',
+  },
+  searchButton: {
+    marginTop: 8,
+  },
+  searchButtonContent: {
+    paddingVertical: 8,
+  },
+  results: {
+    flex: 1,
+  },
+  resultsTitle: {
+    padding: 16,
+    fontWeight: 'bold',
+  },
+  routeCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  routeName: {
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  routeDetails: {
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  busCount: {
+    marginBottom: 8,
+  },
+  busPreview: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  busTag: {
+    backgroundColor: colors.chipBlue,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  noResultsCard: {
+    margin: 16,
+  },
+  noResults: {
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  noResultsHint: {
+    textAlign: 'center',
+    color: colors.textSecondary,
+  },
+  mainScroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  liveMapCard: {
+    margin: 16,
+    marginTop: 8,
+    marginBottom: 16,
+    elevation: 6,
+    backgroundColor: '#fff',
+  },
+  liveMapHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  liveMapTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  stopInfo: {
-    flex: 1,
-    marginLeft: 15,
+  liveMapTitle: {
+    fontWeight: 'bold',
+    color: colors.text,
   },
-  stopName: {
-    fontSize: 16,
-    marginBottom: 2,
-  },
-  stopCity: {
-    fontSize: 14,
-    color: '#666',
-  },
-  loader: {
-    marginTop: 50,
-  },
-  emptyState: {
+  liveBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 50,
+    backgroundColor: '#ff4444',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 4,
   },
-  emptyText: {
-    fontSize: 16,
-    color: '#999',
+  liveIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#fff',
+  },
+  liveText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 10,
+  },
+  busCountChip: {
+    backgroundColor: colors.chipBlue,
+  },
+  mapDescription: {
+    color: colors.textSecondary,
+    marginBottom: 16,
+  },
+  openMapButton: {
+    marginTop: 8,
+  },
+  openMapButtonContent: {
+    paddingVertical: 8,
+  },
+  resultsContainer: {
+    marginTop: 0,
   },
 });
+
+export default HomeScreen;

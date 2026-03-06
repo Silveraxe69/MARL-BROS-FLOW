@@ -12,12 +12,11 @@ export const connectSocket = () => {
     });
 
     socket.on('connect', () => {
-      console.log('✅ Admin Socket connected:', socket.id);
       socket.emit('join_admin'); // Join admin channel
     });
 
     socket.on('disconnect', () => {
-      console.log('❌ Admin Socket disconnected');
+      // Socket disconnected
     });
 
     socket.on('connect_error', (error) => {

@@ -1,32 +1,28 @@
 {
   "expo": {
-    "name": "Smart Bus Passenger",
-    "slug": "smart-bus-passenger",
+    "name": "Flow Bus System",
+    "slug": "passenger-app",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#6200EE"
+      "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
+    "platforms": [
+      "web",
+      "ios",
+      "android"
     ],
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.smartbus.passenger"
-    },
-    "android": {
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
-      ],
-      "package": "com.smartbus.passenger"
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiUrl": "http://192.168.156.122:5000/api",
-      "socketUrl": "http://192.168.156.122:5000",
-      "mapboxToken": "YOUR_MAPBOX_TOKEN_HERE"
+      "apiUrl": "http://localhost:5000/api",
+      "socketUrl": "http://localhost:5000"
     }
   }
 }

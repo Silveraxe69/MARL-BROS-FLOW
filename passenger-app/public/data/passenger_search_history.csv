@@ -1,0 +1,11 @@
+search_id,user_id,from_stop,to_stop,timestamp
+SH001,U001,Gandhipuram,Pollachi,10:10
+SH002,U002,Ukkadam,Town Hall,10:12
+SH003,U003,Chennai Central,Tambaram,10:14
+SH004,U001,Madurai Periyar Bus Stand,Dindigul Bus Stand,10:16
+SH005,U004,Salem Bus Stand,Erode Bus Stand,10:18
+SH006,U002,Tiruchirappalli Central,Thanjavur New Bus Stand,10:20
+SH007,U003,Gandhipuram,Singanallur,10:22
+SH008,U001,Chennai Central,Tambaram,10:24
+SH009,U004,Ukkadam,Pollachi Bus Stand,10:26
+SH010,U002,Madurai Periyar Bus Stand,Dindigul Bus Stand,10:28

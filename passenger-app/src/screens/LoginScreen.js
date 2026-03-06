@@ -1,24 +1,27 @@
 import React, { useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
-import { TextInput, Button, Title, Text } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { TextInput, Button, Text, Surface } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
-import Logo from '../components/Logo';
+import { colors } from '../utils/theme';
 
-export default function LoginScreen({ navigation }) {
+const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
   const handleLogin = async () => {
+    setError('');
+
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setError('Please enter both email and password');
+      return;
+    }
+
+    if (!email.includes('@')) {
+      setError('Please enter a valid email address');
       return;
     }
 
@@ -26,109 +29,166 @@ export default function LoginScreen({ navigation }) {
     const result = await login(email, password);
     setLoading(false);
 
-    if (!result.success) {
-      Alert.alert('Login Failed', result.error);
+    if (result.success) {
+      // Navigation is handled automatically by App.js based on auth state
+    } else {
+      setError(result.error || 'Login failed. Please check your credentials.');
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView 
       style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Logo size={100} style={{ marginBottom: 15 }} />
-          <Title style={styles.title}>TNSTC Passenger App</Title>
-          <Text style={styles.subtitle}>Tamil Nadu State Transport Corporation Ltd.</Text>
-          <Text style={styles.tagline}>A Government of Tamil Nadu Undertaking</Text>
-        </View>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Surface style={styles.surface}>
+          <View style={styles.header}>
+            <Text variant="displaySmall" style={styles.title}>
+              🚌 FLOW Passenger Portal
+            </Text>
+            <Text variant="titleMedium" style={styles.subtitle}>
+              Tamil Nadu State Transport Corporation Ltd.
+            </Text>
+            <Text variant="bodySmall" style={styles.governmentText}>
+              A Government of Tamil Nadu Undertaking
+            </Text>
+          </View>
 
-        <TextInput
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          mode="outlined"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          style={styles.input}
-        />
+          <View style={styles.form}>
+            {error ? (
+              <Surface style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </Surface>
+            ) : null}
 
-        <TextInput
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          mode="outlined"
-          secureTextEntry
-          style={styles.input}
-        />
+            <TextInput
+              label="Email Address"
+              value={email}
+              onChangeText={setEmail}
+              mode="outlined"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              style={styles.input}
+              left={<TextInput.Icon icon="email" />}
+            />
 
-        <Button
-          mode="contained"
-          onPress={handleLogin}
-          loading={loading}
-          disabled={loading}
-          style={styles.button}
-        >
-          Login
-        </Button>
+            <TextInput
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              mode="outlined"
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              style={styles.input}
+              left={<TextInput.Icon icon="lock" />}
+              right={
+                <TextInput.Icon 
+                  icon={showPassword ? "eye-off" : "eye"} 
+                  onPress={() => setShowPassword(!showPassword)}
+                />
+              }
+            />
 
-        <Button
-          mode="text"
-          onPress={() => navigation.navigate('Register')}
-          style={styles.linkButton}
-        >
-          Don't have an account? Register
-        </Button>
-      </View>
+            <Button
+              mode="contained"
+              onPress={handleLogin}
+              style={styles.button}
+              contentStyle={styles.buttonContent}
+              loading={loading}
+              disabled={loading}
+            >
+              Sign In
+            </Button>
+          </View>
+
+          <View style={styles.footer}>
+            <Text variant="bodySmall" style={styles.demoText}>
+              Demo Credentials:
+            </Text>
+            <Text variant="bodySmall" style={styles.demoText}>
+              Email: passenger@test.com | Password: test123
+            </Text>
+            <Text variant="bodySmall" style={styles.demoText}>
+              Email: anitha@smartbus.com | Password: password123
+            </Text>
+          </View>
+        </Surface>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1565C0',
+    backgroundColor: colors.primary,
   },
-  content: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
   },
+  surface: {
+    padding: 32,
+    borderRadius: 16,
+    elevation: 6,
+    backgroundColor: 'white',
+  },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   title: {
-    fontSize: 28,
     fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: 8,
     textAlign: 'center',
-    color: '#FFFFFF',
-    marginBottom: 5,
   },
   subtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    color: '#BBDEFB',
+    color: colors.primary,
     fontWeight: '600',
-    marginBottom: 2,
-  },
-  tagline: {
-    fontSize: 11,
     textAlign: 'center',
-    color: '#E3F2FD',
-    fontStyle: 'italic',
+    marginBottom: 4,
+  },
+  governmentText: {
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  form: {
+    gap: 16,
   },
   input: {
-    marginBottom: 15,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'white',
   },
   button: {
-    marginTop: 10,
-    padding: 5,
-    backgroundColor: '#0D47A1',
+    marginTop: 8,
   },
-  linkButton: {
-    marginTop: 10,
+  buttonContent: {
+    paddingVertical: 8,
+  },
+  errorContainer: {
+    backgroundColor: '#FFEBEE',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  errorText: {
+    color: colors.error,
+    textAlign: 'center',
+  },
+  footer: {
+    marginTop: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  demoText: {
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 4,
   },
 });
+
+export default LoginScreen;

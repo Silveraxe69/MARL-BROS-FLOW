@@ -1,0 +1,7 @@
+user_id,name,phone_number,created_at,email,password,role
+U001,Anitha,9876543210,2026-01-01,anitha@smartbus.com,password123,passenger
+U002,Ravi,9123456789,2026-01-02,ravi@smartbus.com,password123,passenger
+U003,Kumar,9345678123,2026-01-02,kumar@smartbus.com,password123,passenger
+U004,Priya,9988776655,2026-01-03,priya@smartbus.com,password123,passenger
+admin,Admin User,9876543210,2026-01-01,admin@smartbus.com,admin123,admin
+passenger,Test Passenger,9876543211,2026-01-01,passenger@test.com,test123,passenger

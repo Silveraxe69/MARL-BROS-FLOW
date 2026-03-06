@@ -1,0 +1,16 @@
+bus_id,route_id,bus_color,service_type,women_bus,accessible,status
+B001,R101,YELLOW_BLACK,Intercity,No,No,Running
+B002,R101,BLUE_GREY,Superfast,No,No,Running
+B003,R102,PINK,Women_Free,Yes,No,Running
+B004,R103,RED,Deluxe,No,No,Stopped
+B005,R104,WHITE,Sleeper,No,Yes,Running
+B006,R105,YELLOW_BLACK,Intercity,No,No,Delayed
+B007,R101,YELLOW_BLACK,Intercity,No,No,Running
+B008,R102,PINK,Women_Free,Yes,Yes,Running
+B009,R103,RED,Deluxe,No,No,Running
+B010,R104,WHITE,Sleeper,No,Yes,Running
+B011,R105,BLUE_GREY,Superfast,No,No,Running
+B012,R101,YELLOW_BLACK,Intercity,No,No,Running
+B013,R102,PINK,Women_Free,Yes,No,Running
+B014,R103,RED,Deluxe,No,Yes,Running
+B015,R104,YELLOW_BLACK,Intercity,No,No,Running
