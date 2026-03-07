@@ -61,7 +61,7 @@ export const offEvent = (event, callback) => {
   }
 };
 
-export default {
+const socketApi = {
   connectSocket,
   disconnectSocket,
   getSocket,
@@ -70,3 +70,5 @@ export default {
   onCrowdUpdate,
   offEvent,
 };
+
+export default socketApi;

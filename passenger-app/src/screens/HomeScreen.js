@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Animated, Easing } from 'react-native';
-import { Button, Text, Card } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Animated, Easing, Modal, Pressable } from 'react-native';
+import { Button, Text, Card, IconButton } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../utils/theme';
 import { loadMultipleCSV } from '../utils/csvParser';
@@ -17,7 +17,8 @@ const HomeScreen = ({ navigation }) => {
   const [busStopSequenceData, setBusStopSequenceData] = useState([]);
   const [busesData, setBusesData] = useState([]);
   const [liveBusLocations, setLiveBusLocations] = useState([]);
-  const aiPulseValue = useRef(new Animated.Value(0)).current;
+  const [isVoiceAssistantVisible, setIsVoiceAssistantVisible] = useState(false);
+  const micPulseValue = useRef(new Animated.Value(0)).current;
 
   // Load data from public folder on component mount
   useEffect(() => {
@@ -25,18 +26,23 @@ const HomeScreen = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
+    if (!isVoiceAssistantVisible) {
+      micPulseValue.setValue(0);
+      return;
+    }
+
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(aiPulseValue, {
+        Animated.timing(micPulseValue, {
           toValue: 1,
-          duration: 900,
-          easing: Easing.inOut(Easing.ease),
+          duration: 1000,
+          easing: Easing.out(Easing.ease),
           useNativeDriver: true,
         }),
-        Animated.timing(aiPulseValue, {
+        Animated.timing(micPulseValue, {
           toValue: 0,
-          duration: 900,
-          easing: Easing.inOut(Easing.ease),
+          duration: 1000,
+          easing: Easing.in(Easing.ease),
           useNativeDriver: true,
         }),
       ])
@@ -44,7 +50,7 @@ const HomeScreen = ({ navigation }) => {
 
     loop.start();
     return () => loop.stop();
-  }, [aiPulseValue]);
+  }, [isVoiceAssistantVisible, micPulseValue]);
 
   const loadAllData = useCallback(async () => {
     try {
@@ -298,55 +304,146 @@ const HomeScreen = ({ navigation }) => {
           </Card>
         )}
 
-        <Card style={styles.aiRouteCard}>
+        <Card style={styles.voiceAssistantCard}>
           <Card.Content>
-            <View style={styles.aiRouteHeader}>
-              <View style={styles.aiRouteTitleContainer}>
-                <Text variant="titleLarge" style={styles.aiRouteTitle}>
-                  AI Route Assistant
+            <View style={styles.voiceAssistantHeader}>
+              <View style={styles.voiceAssistantTitleRow}>
+                <Text variant="titleLarge" style={styles.voiceAssistantTitle}>
+                  Voice Route Assistant
                 </Text>
-                <View style={styles.aiBadge}>
-                  <Animated.View
-                    style={[
-                      styles.aiPulseDot,
-                      {
-                        transform: [
-                          {
-                            scale: aiPulseValue.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [1, 1.15],
-                            }),
-                          },
-                        ],
-                        opacity: aiPulseValue.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [1, 0.75],
-                        }),
-                      },
-                    ]}
-                  />
-                  <Text variant="bodySmall" style={styles.aiBadgeText}>SMART</Text>
-                </View>
               </View>
             </View>
 
-            <Text variant="bodyMedium" style={styles.aiDescription}>
-              Get fastest route suggestions using stop network and simulated traffic.
+            <Text variant="bodyMedium" style={styles.voiceAssistantDescription}>
+              Speak your start and destination stops for guided route planning.
             </Text>
 
             <Button
               mode="contained"
-              icon="creation"
-              style={styles.openAiButton}
-              contentStyle={styles.openAiButtonContent}
-              onPress={() => navigation.navigate('RouteRecommendation')}
+              icon="microphone"
+              style={styles.openVoiceButton}
+              contentStyle={styles.openVoiceButtonContent}
+              onPress={() => setIsVoiceAssistantVisible(true)}
             >
-              Open AI Route
+              Open Voice Assistant
             </Button>
           </Card.Content>
         </Card>
 
+        <Card style={styles.aiRouteMiniCard}>
+          <Card.Content style={styles.aiRouteMiniContent}>
+            <Text variant="bodySmall" style={styles.aiRouteMiniLabel}>
+              Need alternate route suggestions?
+            </Text>
+            <Button
+              mode="outlined"
+              compact
+              icon="creation"
+              style={styles.openAiMiniButton}
+              contentStyle={styles.openAiMiniButtonContent}
+              onPress={() => navigation.navigate('RouteRecommendation')}
+            >
+              AI Route Assistant
+            </Button>
+          </Card.Content>
+        </Card>
       </ScrollView>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={isVoiceAssistantVisible}
+        onRequestClose={() => setIsVoiceAssistantVisible(false)}
+      >
+        <View style={styles.voiceOverlay}>
+          <View style={styles.voiceCard}>
+            <View style={styles.voiceTopStripe} />
+            <Text variant="titleLarge" style={styles.voiceTitle}>Bus Voice Assistant</Text>
+            <Text variant="bodyMedium" style={styles.voiceSubtitle}>
+              Listening for your Start and Destination...
+            </Text>
+
+            <View style={styles.voiceMicWrap}>
+              <Animated.View
+                style={[
+                  styles.voicePulseRing,
+                  {
+                    transform: [
+                      {
+                        scale: micPulseValue.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 1.7],
+                        }),
+                      },
+                    ],
+                    opacity: micPulseValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.4, 0],
+                    }),
+                  },
+                ]}
+              />
+              <View style={styles.voiceMicCore}>
+                <IconButton
+                  icon="microphone"
+                  size={36}
+                  iconColor={colors.paper}
+                  style={styles.voiceMicIcon}
+                />
+              </View>
+            </View>
+
+            <View style={styles.voiceInfoCard}>
+              <Text variant="bodySmall" style={styles.voiceInfoLabel}>START</Text>
+              <Text variant="bodyMedium" style={styles.voiceInfoValue}>
+                {fromStop?.stop_name || 'Awaiting spoken Start'}
+              </Text>
+              <Text variant="bodySmall" style={styles.voiceInfoLabel}>DESTINATION</Text>
+              <Text variant="bodyMedium" style={styles.voiceInfoValue}>
+                {toStop?.stop_name || 'Awaiting spoken Destination'}
+              </Text>
+            </View>
+
+            <View style={styles.voiceSelectionRow}>
+              <Button
+                mode="outlined"
+                compact
+                style={styles.voiceActionButton}
+                onPress={() => {
+                  setIsVoiceAssistantVisible(false);
+                  navigation.navigate('StopSelection', {
+                    onSelect: (stop) => setFromStop(stop),
+                    title: 'Select Starting Stop',
+                  });
+                }}
+              >
+                Set Start
+              </Button>
+              <Button
+                mode="outlined"
+                compact
+                style={styles.voiceActionButton}
+                onPress={() => {
+                  setIsVoiceAssistantVisible(false);
+                  navigation.navigate('StopSelection', {
+                    onSelect: (stop) => setToStop(stop),
+                    title: 'Select Destination Stop',
+                  });
+                }}
+              >
+                Set Destination
+              </Button>
+            </View>
+
+            <Pressable
+              style={styles.voiceCloseButton}
+              onPress={() => setIsVoiceAssistantVisible(false)}
+            >
+              <Text variant="labelLarge" style={styles.voiceCloseText}>Close Assistant</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -474,28 +571,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.primary,
   },
-  aiBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.chipBlue,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: 8,
-  },
-  aiPulseDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-  },
-  aiBadgeText: {
-    color: colors.primary,
-    fontWeight: 'bold',
-    fontSize: 10,
-  },
   aiDescription: {
     color: colors.textSecondary,
     marginBottom: 16,
@@ -505,6 +580,159 @@ const styles = StyleSheet.create({
   },
   openAiButtonContent: {
     paddingVertical: 8,
+  },
+  aiRouteMiniCard: {
+    marginHorizontal: 16,
+    marginTop: 2,
+    marginBottom: 8,
+    elevation: 2,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  aiRouteMiniContent: {
+    paddingVertical: 10,
+  },
+  aiRouteMiniLabel: {
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  openAiMiniButton: {
+    alignSelf: 'flex-start',
+    borderColor: colors.primary,
+  },
+  openAiMiniButtonContent: {
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+  },
+  voiceAssistantCard: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 6,
+    elevation: 4,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  voiceAssistantHeader: {
+    marginBottom: 10,
+  },
+  voiceAssistantTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  voiceAssistantTitle: {
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  voiceAssistantDescription: {
+    color: colors.textSecondary,
+    marginBottom: 16,
+  },
+  openVoiceButton: {
+    marginTop: 0,
+    backgroundColor: colors.primaryDark,
+  },
+  openVoiceButtonContent: {
+    paddingVertical: 8,
+  },
+  voiceOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  voiceCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 18,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 20,
+    overflow: 'hidden',
+  },
+  voiceTopStripe: {
+    height: 8,
+    marginHorizontal: -20,
+    marginBottom: 16,
+    backgroundColor: colors.warning,
+  },
+  voiceTitle: {
+    color: colors.primaryDark,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  voiceSubtitle: {
+    marginTop: 8,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  voiceMicWrap: {
+    marginTop: 20,
+    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 120,
+  },
+  voicePulseRing: {
+    position: 'absolute',
+    width: 94,
+    height: 94,
+    borderRadius: 47,
+    backgroundColor: colors.info,
+  },
+  voiceMicCore: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceMicIcon: {
+    margin: 0,
+  },
+  voiceInfoCard: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    backgroundColor: colors.chipBlue,
+    padding: 12,
+    gap: 4,
+  },
+  voiceInfoLabel: {
+    color: colors.primaryDark,
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
+  voiceInfoValue: {
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  voiceSelectionRow: {
+    marginTop: 16,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  voiceActionButton: {
+    flex: 1,
+    borderColor: colors.primary,
+  },
+  voiceCloseButton: {
+    marginTop: 14,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  voiceCloseText: {
+    color: colors.paper,
+    fontWeight: 'bold',
   },
 });
 

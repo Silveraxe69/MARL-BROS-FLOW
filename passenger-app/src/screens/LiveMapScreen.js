@@ -236,7 +236,7 @@ const LiveMapScreen = ({ navigation, route }) => {
         </View>
       ) : null}
 
-      {busLocations.length > 0 ? (
+      {busLocations.length > 0 || routeMarkers.length > 0 ? (
         <LiveMapLeaflet 
           buses={busLocations}
           stops={stops}
@@ -245,7 +245,7 @@ const LiveMapScreen = ({ navigation, route }) => {
         />
       ) : hasFilter ? (
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>No routes currently available for the selected points.</Text>
+          <Text style={styles.loadingText}>No routes found for the selected points.</Text>
         </View>
       ) : (
         <View style={styles.loadingContainer}>

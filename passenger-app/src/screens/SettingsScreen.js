@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { List, Switch, Button, Divider, Text, Card } from 'react-native-paper';
+import { List, Button, Divider, Text, Card } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../utils/theme';
 import PassengerNavbar from '../components/PassengerNavbar';
 
 const SettingsScreen = ({ navigation }) => {
-  const { user, preferWomenBuses, toggleWomenBusPreference, logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = async () => {
     await logout();
@@ -52,27 +52,6 @@ const SettingsScreen = ({ navigation }) => {
             </View>
           </Card.Content>
         </Card>
-
-        {/* Preferences Section */}
-        <View style={styles.section}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Travel Preferences
-          </Text>
-          
-          <Card style={styles.card}>
-            <List.Item
-              title="Prefer Pink Buses"
-              description="Show women-only buses first in search results"
-              left={props => <List.Icon {...props} icon="human-female" />}
-              right={() => (
-                <Switch
-                  value={preferWomenBuses}
-                  onValueChange={toggleWomenBusPreference}
-                />
-              )}
-            />
-          </Card>
-        </View>
 
         {/* About Section */}
         <View style={styles.section}>
