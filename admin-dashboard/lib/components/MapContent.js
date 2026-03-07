@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 
 // Bus marker colors
 const BUS_COLORS = {
@@ -155,4 +155,4 @@ function MapContent({ busData }) {
   );
 }
 
-export default React.memo(MapContent);
+export default memo(MapContent);

@@ -52,22 +52,6 @@ const HomeScreen = ({ navigation }) => {
     }
   }, []);
 
-  const handleSearch = useCallback(() => {
-    if (!fromStop || !toStop) {
-      alert('Please select both From and To stops');
-      return;
-    }
-
-    if (fromStop.stop_id === toStop.stop_id) {
-      alert('From and To stops cannot be the same');
-      return;
-    }
-
-    // Find routes that connect these stops
-    const foundRoutes = findConnectingRoutes(fromStop.stop_id, toStop.stop_id);
-    setRoutes(foundRoutes);
-  }, [fromStop, toStop, findConnectingRoutes]);
-
   const findConnectingRoutes = useCallback((fromStopId, toStopId) => {
     const results = [];
 
@@ -105,6 +89,22 @@ const HomeScreen = ({ navigation }) => {
 
     return results;
   }, [busStopSequenceData, routesData, busesData, preferWomenBuses]);
+
+  const handleSearch = useCallback(() => {
+    if (!fromStop || !toStop) {
+      alert('Please select both From and To stops');
+      return;
+    }
+
+    if (fromStop.stop_id === toStop.stop_id) {
+      alert('From and To stops cannot be the same');
+      return;
+    }
+
+    // Find routes that connect these stops
+    const foundRoutes = findConnectingRoutes(fromStop.stop_id, toStop.stop_id);
+    setRoutes(foundRoutes);
+  }, [fromStop, toStop, findConnectingRoutes]);
 
   return (
     <View style={styles.container}>

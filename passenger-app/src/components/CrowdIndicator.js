@@ -100,5 +100,3 @@ const styles = StyleSheet.create({
 });
 
 export default React.memo(CrowdIndicator);
-
-export default CrowdIndicator;

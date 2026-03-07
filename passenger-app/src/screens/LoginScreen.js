@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { TextInput, Button, Text, Surface } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,7 @@ const LoginScreen = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const passwordInputRef = useRef(null);
   const { login } = useAuth();
 
   const handleLogin = async () => {
@@ -70,17 +71,23 @@ const LoginScreen = ({ navigation }) => {
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordInputRef.current?.focus()}
+              blurOnSubmit={false}
               style={styles.input}
               left={<TextInput.Icon icon="email" />}
             />
 
             <TextInput
+              ref={passwordInputRef}
               label="Password"
               value={password}
               onChangeText={setPassword}
               mode="outlined"
               secureTextEntry={!showPassword}
               autoCapitalize="none"
+              returnKeyType="done"
+              onSubmitEditing={handleLogin}
               style={styles.input}
               left={<TextInput.Icon icon="lock" />}
               right={
